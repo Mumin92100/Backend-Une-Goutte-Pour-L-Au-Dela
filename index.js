@@ -135,19 +135,14 @@ app.post('/createPlayer', (req, res) => {
         res.status(201).json({ success: true, message: 'Joueur créé avec succès' })
 
         // Envoyer l'email de bienvenue après la création du joueur
-        return ({player, emailSent: sendRegistrationEmail(player.email, player.name)}) 
+        sendRegistrationEmail(player.email, player.name, player._id)
       } else {
         res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur' })
       }
     })
-    .then(({ player, emailSent }) => {
-      if (emailSent) {
-        console.log('Récupération de l\'event de l\'email pour le joueur:', player.name)
-        updatePlayer({ id: player._id, updateType: 'emailSent', toUpdate: true })
-      }
-    })
-    .catch (error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
+    .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
 })
+
 
 app.post('/createAdmin', (req, res) => {
   const { name, password, authToken } = req.body
@@ -190,46 +185,34 @@ app.get('/verifEmail', (req, res) => {
 
 app.post('/resendEmail', (req, res) => {
   const { id } = req.body
-  
+
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
     .then(player => {
       if (player) {
-        return { player, emailSent: sendRegistrationEmail(player.email, player.name) }
+        sendRegistrationEmail(player.email, player.name, player._id)
       } else {
         res.status(404).json({ message: 'Joueur non trouvé' })
       }
-    })
-    .then(({ player, emailSent }) => {
-      if (emailSent) {
-        updatePlayer({ id: player._id, updateType: 'emailSent', toUpdate: true }) // Met à jour le champ emailSent du joueur dans la base de données
-      }
-      res.status(200).json({ success: true, message: 'Email renvoyé avec succès' })
     })
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
 app.post('/sendWarning', (req, res) => {
   const { id } = req.body
-  
+
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
     .then(player => {
       if (player) {
-        return { player, emailSent: sendWarningEmail(player.email, player.name) }
+        sendWarningEmail(player.email, player.name, player._id)
       } else {
         res.status(404).json({ message: 'Joueur non trouvé' })
       }
-    })
-    .then(({ player, emailSent }) => {
-      if (emailSent) {
-        updatePlayer({ id: player._id, updateType: 'warningSent', toUpdate: true }) // Met à jour le champ warningSent du joueur dans la base de données
-      }
-      res.status(200).json({ success: true, message: 'Email de mise en garde renvoyé avec succès' })
     })
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
