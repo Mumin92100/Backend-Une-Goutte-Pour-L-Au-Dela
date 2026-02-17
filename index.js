@@ -113,9 +113,12 @@ passport.serializeUser((user, done) => {
 })
 
 passport.deserializeUser(async (id, done) => {
-  const players = await getPlayers()
-  const user = players ? players.find(user => user._id === id) : null
-  done(null, user)
+  try {
+    const user = await getPlayerById(id)  // ✅ Récupère un seul joueur
+    done(null, user)
+  } catch (err) {
+    done(err)
+  }
 })
 
 // Middleware pour protéger les routes
@@ -200,7 +203,7 @@ app.get('/verifEmail', (req, res) => {
 app.post('/resendEmail', (req, res) => {
   const { id } = req.body
 
-  if (isNaN(id)) {
+  if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
@@ -217,7 +220,7 @@ app.post('/resendEmail', (req, res) => {
 app.post('/sendWarning', (req, res) => {
   const { id } = req.body
 
-  if (isNaN(id)) {
+  if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
@@ -239,8 +242,8 @@ app.get('/getPlayers', (req, res) => {
 })
 
 app.get('/getPlayerById', (req, res) => {
-  const id = parseInt(req.query.id)
-  if (isNaN(id)) {
+  const id = req.query.id
+  if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
@@ -282,10 +285,10 @@ app.get('/getGoals', (req, res) => {
 })
 
 app.get('/getGoalsByPlayerId', (req, res) => {
-  const playerId = parseInt(req.query.playerId)
+  const playerId = req.query.playerId
 
   // Vérifie que l'ID du joueur est un nombre valide
-  if (isNaN(playerId)) {
+  if (!playerId) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getGoalsByPlayerId(playerId)
@@ -294,9 +297,9 @@ app.get('/getGoalsByPlayerId', (req, res) => {
 })
 
 app.delete('/erasePlayerById', (req, res) => {
-  const id = parseInt(req.query.id)
+  const id = req.query.id
 
-  if (isNaN(id)) {
+  if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   erasePlayerById(id)
