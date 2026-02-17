@@ -31,7 +31,8 @@ app.use(cors({
    "https://une-goutte-pour-l-au-dela.vercel.app"
   ],
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Credentials"]
+  allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
+  credentials: true
 }))
 
 // Middleware pour parser les données du formulaire
