@@ -186,8 +186,9 @@ app.get('/verifEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la vérification de l\'email', error }))
 })
 
-app.get('/resendEmail', (req, res) => {
-  const id = parseInt(req.query.id)
+app.post('/resendEmail', (req, res) => {
+  const { id } = req.body
+  
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
@@ -208,25 +209,29 @@ app.get('/resendEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.get('/sendWarning', (req, res) => {
-  const id = parseInt(req.query.id)
+app.post('/sendWarning', (req, res) => {
+  const { id } = req.body
+  
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
   getPlayerById(id)
     .then(player => {
       if (player) {
-        const emailSent = sendWarningEmail(player.email, player.name) // Renvoyer l'email de mise en garde après la création du joueur
-        if (emailSent) {
-          updatePlayer({ id: player._id, updateType: 'warningSent', toUpdate: true }) // Met à jour le champ warningSent du joueur dans la base de données
-        }
-        res.status(200).json({ success: true, message: 'Email de mise en garde renvoyé avec succès' })
+        return { player, emailSent: sendWarningEmail(player.email, player.name) }
       } else {
         res.status(404).json({ message: 'Joueur non trouvé' })
       }
     })
+    .then(({ player, emailSent }) => {
+      if (emailSent) {
+        updatePlayer({ id: player._id, updateType: 'warningSent', toUpdate: true }) // Met à jour le champ warningSent du joueur dans la base de données
+      }
+      res.status(200).json({ success: true, message: 'Email de mise en garde renvoyé avec succès' })
+    })
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
+
 
 app.get('/getPlayers', (req, res) => {
   getPlayers()
