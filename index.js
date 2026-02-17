@@ -28,11 +28,13 @@ app.use(express.json())
 // CORS configuré pour autoriser https://kalskai-kill-overlay.vercel.app
 app.use(cors({
   origin: [
-   "https://une-goutte-pour-l-au-dela.vercel.app"
+    "https://une-goutte-pour-l-au-dela.vercel.app"
   ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
-  credentials: true
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["*"],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }))
 
 // Middleware pour parser les données du formulaire
