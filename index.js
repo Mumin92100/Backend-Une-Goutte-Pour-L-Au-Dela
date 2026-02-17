@@ -13,7 +13,6 @@ import {
 } from './database.js'
 import { Auth } from './utils/AuthClass.js'
 import { sendRegistrationEmail, sendWarningEmail } from './mailer.js'
-import { send } from 'vite'
 //import { saveTwitchToken } from './utils/twitchTokenManager.js'
 //import { startBot } from './twitchBot.js'
 
