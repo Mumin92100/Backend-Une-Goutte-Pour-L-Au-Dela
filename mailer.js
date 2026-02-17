@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
         pass: '25fc45417e47cca4021a6f49133b097e' // Remplacez par votre clé secrète Mailjet
     }
 })
-const fromEmail = 'califeryan@gmail.com' // Adresse email de l'expéditeur
+const fromEmail = 'unegouttepourleaudela@gmail.com' // Adresse email de l'expéditeur
 
 
 export async function sendRegistrationEmail(toEmail, name) {
@@ -64,4 +64,5 @@ export async function sendWarningEmail(toEmail, name) {
             return true
         }
     })
+
 }
