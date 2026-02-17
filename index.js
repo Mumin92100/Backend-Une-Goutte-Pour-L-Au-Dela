@@ -31,7 +31,7 @@ app.use(cors({
     "https://une-goutte-pour-l-au-dela.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["*"],
+  allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204
