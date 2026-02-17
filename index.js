@@ -26,7 +26,15 @@ const ADMIN_TOKEN = config.adminToken
 
 const app = express()
 app.use(express.json())
-app.use(cors())
+// CORS configuré pour autoriser https://kalskai-kill-overlay.vercel.app
+app.use(cors({
+  origin: [
+    "https://kalskai-kill-overlay.vercel.app",
+    "https://game-in-stream.vercel.app"  // Ajoutez votre deuxième adresse ici
+  ],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}))
 
 // Middleware pour parser les données du formulaire
 app.use(express.urlencoded({ extended: true }));
