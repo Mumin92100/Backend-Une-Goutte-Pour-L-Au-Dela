@@ -20,7 +20,7 @@ export async function sendRegistrationEmail(toEmail, name, userId) {
     // Lecture du template HTML et remplacement des variables
     let html = fs.readFileSync("./emailRegistration.html", "utf8")
     html = html.replace(/{{name}}/g, name)
-    
+
     // Options de l'email
     const mailOptions = {
         from: fromEmail,   // Expéditeur
@@ -29,16 +29,20 @@ export async function sendRegistrationEmail(toEmail, name, userId) {
         html: html                     // Corps de l'email en HTML
     }
 
-    // Envoi de l'email
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log('Erreur lors de l\'envoi :', error)
-        } else {
-            console.log('Email envoyé avec succès :', info.response)
-            updatePlayer({ id: userId, updateType: 'emailSent', toUpdate: true }) // Met à jour le champ emailSent à true en cas de succès d'envoi
-            .catch(error => console.log('Erreur lors de la mise à jour du joueur après envoi de l\'email :', error))
-        }
-    })
+    try {
+        // Envoi de l'email
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log('Erreur lors de l\'envoi :', error)
+            } else {
+                console.log('Email envoyé avec succès :', info.response)
+                updatePlayer({ id: userId, updateType: 'emailSent', toUpdate: true }) // Met à jour le champ emailSent à true en cas de succès d'envoi
+                    .catch(error => console.log('Erreur lors de la mise à jour du joueur après envoi de l\'email :', error))
+            }
+        })
+    } catch (error) {
+        console.log('Erreur lors de l\'envoi de l\'email :', error)
+    }
 }
 
 export async function sendWarningEmail(toEmail, name, userId) {
@@ -46,7 +50,7 @@ export async function sendWarningEmail(toEmail, name, userId) {
     // Lecture du template HTML et remplacement des variables
     let html = fs.readFileSync("./emailWarning.html", "utf8")
     html = html.replace(/{{name}}/g, name)
-    
+
     // Options de l'email
     const mailOptions = {
         from: fromEmail,   // Expéditeur
@@ -55,15 +59,20 @@ export async function sendWarningEmail(toEmail, name, userId) {
         html: html                     // Corps de l'email en HTML
     }
 
-    // Envoi de l'email
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log('Erreur lors de l\'envoi :', error)
-        } else {
-            console.log('Email envoyé avec succès :', info.response)
-            updatePlayer({ id: userId, updateType: 'warningSent', toUpdate: true }) // Met à jour le champ warningSent à true en cas de succès d'envoi
-            .catch(error => console.log('Erreur lors de la mise à jour du joueur après envoi de l\'email :', error))
-        }
-    })
+    try {
+        // Envoi de l'email
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log('Erreur lors de l\'envoi :', error)
+            } else {
+                console.log('Email envoyé avec succès :', info.response)
+                updatePlayer({ id: userId, updateType: 'warningSent', toUpdate: true }) // Met à jour le champ warningSent à true en cas de succès d'envoi
+                    .catch(error => console.log('Erreur lors de la mise à jour du joueur après envoi de l\'email :', error))
+            }
+        })
+    } catch (error) {
+        console.log('Erreur lors de l\'envoi de l\'email :', error)
+    }
 }
+
 
