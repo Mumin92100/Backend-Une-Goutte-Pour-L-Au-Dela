@@ -114,7 +114,7 @@ const server = http.createServer(app)
 
 // --- Routes API ---
 
-app.post('/api/createPlayer', (req, res) => {
+app.post('/createPlayer', (req, res) => {
   // Destructure les données du joueur depuis les paramètres de la requête
   const { name, email, password, goal, secondGoal = "", thirdGoal = "" } = req.body
 
@@ -147,7 +147,7 @@ app.post('/api/createPlayer', (req, res) => {
     .catch (error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
 })
 
-app.post('/api/createAdmin', (req, res) => {
+app.post('/createAdmin', (req, res) => {
   const { name, password, authToken } = req.body
 
   // Vérifie que les données nécessaires sont présentes et que le token d'authentification est valide
@@ -170,7 +170,7 @@ app.post('/api/createAdmin', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création de l\'admin', error }))
 })
 
-app.get('/api/verifEmail', (req, res) => {
+app.get('/verifEmail', (req, res) => {
   const email = req.query.email
   if (!email) {
     return res.status(400).json({ message: 'Email manquant' })
@@ -186,7 +186,7 @@ app.get('/api/verifEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la vérification de l\'email', error }))
 })
 
-app.get('/api/resendEmail', (req, res) => {
+app.get('/resendEmail', (req, res) => {
   const id = parseInt(req.query.id)
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
@@ -206,7 +206,7 @@ app.get('/api/resendEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.get('/api/sendWarning', (req, res) => {
+app.get('/sendWarning', (req, res) => {
   const id = parseInt(req.query.id)
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
@@ -226,13 +226,13 @@ app.get('/api/sendWarning', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.get('/api/getPlayers', (req, res) => {
+app.get('/getPlayers', (req, res) => {
   getPlayers()
     .then(players => res.status(200).json({ players: players }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des joueurs', error }))
 })
 
-app.get('/api/getPlayerById', (req, res) => {
+app.get('/getPlayerById', (req, res) => {
   const id = parseInt(req.query.id)
   if (isNaN(id)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
@@ -248,7 +248,7 @@ app.get('/api/getPlayerById', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération du joueur', error }))
 })
 
-app.post('/api/updatePlayer', (req, res) => {
+app.post('/updatePlayer', (req, res) => {
 
   // Déstructure les données de mise à jour pour l'update du nom du joueur
   const { id, updateType, toUpdate } = req.body
@@ -269,13 +269,13 @@ app.post('/api/updatePlayer', (req, res) => {
 
 })
 
-app.get('/api/getGoals', (req, res) => {
+app.get('/getGoals', (req, res) => {
   getGoals()
     .then(goals => res.status(200).json({ goals: goals }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.get('/api/getGoalsByPlayerId', (req, res) => {
+app.get('/getGoalsByPlayerId', (req, res) => {
   const playerId = parseInt(req.query.playerId)
 
   // Vérifie que l'ID du joueur est un nombre valide
@@ -287,7 +287,7 @@ app.get('/api/getGoalsByPlayerId', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.delete('/api/erasePlayerById', (req, res) => {
+app.delete('/erasePlayerById', (req, res) => {
   const id = parseInt(req.query.id)
 
   if (isNaN(id)) {
@@ -298,7 +298,7 @@ app.delete('/api/erasePlayerById', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement du joueur', error }))
 })
 
-app.delete('/api/eraseAllPlayers', (req, res) => {
+app.delete('/eraseAllPlayers', (req, res) => {
   const authToken = req.query.authToken
   // Vérifie que le token d'authentification est présent et valide
   if (authToken !== ADMIN_TOKEN) {
@@ -311,7 +311,7 @@ app.delete('/api/eraseAllPlayers', (req, res) => {
 })
 
 // --- Routes de login Passport ---
-app.post('/api/login', (req, res, next) => {
+app.post('/login', (req, res, next) => {
   passport.authenticate('local', (err, user, info) => { // Callback personnalisé pour gérer la réponse de l'authentification
     if (err) {
       return res.status(500).json({ message: 'Erreur lors de la connexion', error: err })
@@ -331,7 +331,7 @@ app.post('/api/login', (req, res, next) => {
   })(req, res, next) // Appelle la fonction de middleware de Passport pour l'authentification
 })
 
-app.post('/api/adminLogin', (req, res, next) => {
+app.post('/adminLogin', (req, res, next) => {
   passport.authenticate('local-admin', (err, admin, info) => {
     if (err) {
       return res.status(500).json({ message: 'Erreur lors de la connexion admin', error: err })
@@ -349,12 +349,12 @@ app.post('/api/adminLogin', (req, res, next) => {
 })
 
 // Exemple de route privée protégée
-app.get('/api/prive', ensureAuthenticated, (req, res) => {
+app.get('/prive', ensureAuthenticated, (req, res) => {
   res.json({ message: 'Bienvenue !', user: req.user })
 })
 
 // Route de déconnexion
-app.get('/api/logout', (req, res) => {
+app.get('/logout', (req, res) => {
   // Utilise la méthode de déconnexion de Passport pour terminer la session
   req.logout(err => {
     if (err) return res.status(500).json({ message: 'Erreur', error: err })
@@ -366,14 +366,14 @@ app.get('/api/logout', (req, res) => {
   })
 })
 
-app.get('/api/clientId', (req, res) => {
+app.get('/clientId', (req, res) => {
   if (!CLIENT_ID) {
     return res.status(500).json({ message: 'Le client ID est introuvable dans la configuration' })
   }
   res.status(200).json({ clientId: CLIENT_ID })
 })
 
-app.get('/api/twitchCode', (req, res) => {
+app.get('/twitchCode', (req, res) => {
 
   const code = req.query.code
   if (!code) {
