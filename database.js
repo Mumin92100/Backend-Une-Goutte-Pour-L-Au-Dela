@@ -1,7 +1,6 @@
 import { MongoClient } from 'mongodb'
 import { Auth } from './utils/AuthClass.js'
 import fs from 'fs'
-import { add } from 'date-fns/add'
 
 const uri = 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/?appName=Cluster0' // Mets ici ton URI Atlas
 const client = new MongoClient(uri, { tls: true })
@@ -328,3 +327,4 @@ export async function getTwitchToken() {
   return doc ? doc.token : null
 
 }
+
