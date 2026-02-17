@@ -47,13 +47,12 @@ app.use(session({
   resave: true,
   saveUninitialized: true,
   store: MongoStore.create({
-    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/local_ramadan-project'
+    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project'
   }),
   cookie: {
     httpOnly: true,
     sameSite: 'none',
     secure: true, // Mettre à true en production avec HTTPS
-    domain: "une-goutte-pour-l-au-dela.vercel.app", // Doit correspondre au domaine de votre application
     maxAge: 24 * 60 * 60 * 1000 // 1 jour
   }
 }))
