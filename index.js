@@ -26,17 +26,16 @@ const ADMIN_TOKEN = config.adminToken
 
 const app = express()
 app.use(express.json())
-// CORS configuré pour autoriser https://kalskai-kill-overlay.vercel.app
-app.use(cors({
-  origin: [
-    "https://une-goutte-pour-l-au-dela.onrender.com"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}))
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://une-goutte-pour-l-au-dela.vercel.app');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Credentials');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+    next();
+  });
 
 // Middleware pour parser les données du formulaire
 app.use(express.urlencoded({ extended: true }));
