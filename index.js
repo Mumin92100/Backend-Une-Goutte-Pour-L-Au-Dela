@@ -13,6 +13,7 @@ import {
 } from './database.js'
 import { Auth } from './utils/AuthClass.js'
 import { sendRegistrationEmail, sendWarningEmail } from './mailer.js'
+import MongoStore from 'connect-mongo'
 //import { saveTwitchToken } from './utils/twitchTokenManager.js'
 //import { startBot } from './twitchBot.js'
 
@@ -24,18 +25,6 @@ const CLIENT_SECRET = config.clientSecret
 const ADMIN_TOKEN = config.adminToken
 
 const app = express()
-app.use(function(req, res, next) {
-res.header('Access-Control-Allow-Credentials', true)
-res.header('Access-Control-Allow-Origin', req.headers.origin)
-res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
-res.header('Access-Control-Allow-Headers', 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept')
-if ('OPTIONS' == req.method) {
-     res.send(200)
- } else {
-     next()
- }
-})
-
 app.use(express.json())
 // CORS configuré pour autoriser https://kalskai-kill-overlay.vercel.app
 app.use(cors({
@@ -57,9 +46,13 @@ app.use(session({
   secret: ADMIN_TOKEN,
   resave: true,
   saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project'
+  }),
   cookie: {
     sameSite: 'none',
-    secure: true
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000 // 1 jour
   }
 }))
 app.use(passport.initialize())
