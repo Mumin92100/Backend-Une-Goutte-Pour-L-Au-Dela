@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Relance pour inactivité</title>
+  <style>
+    body {
+      background-image: url('http://localhost:3000/Assets/content_fond.jpg');
+      background-size: cover;
+      background-position: center;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background-color: rgba(9, 9, 11, 0.93);
+      border-radius: 12px;
+      padding: 40px;
+      padding-top: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      color: white;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+      margin-top: 20px;
+    }
+
+    .content {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .cta {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .cta a {
+      background-color: #0099cc;
+      color: #fff;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      display: inline-block;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img src="http://localhost:3000/Assets/content_top.png" width="100%" alt="" style="display:block; border-radius:12px 12px 0 0;">
+    <div class="title"> As-salâmu ’alaykum {{name}}, </div>
+    <div class="content">
+      <p>Nous avons remarqué ton absence ces derniers jours.</p>
+      <p>Dans <em>Une Goutte pour l’Eau Dela</em>, chaque membre représente une intention, une responsabilité, une
+        goutte de bien.</p>
+      <p>Pour préserver une communauté active et sincèrement engagée, les comptes inactifs sont automatiquement
+        désactivés après <strong>3 jours sans connexion</strong>.</p>
+      <p>Cependant il te reste <strong>{{remainingHours}} heures</strong> pour te reconnecter et conserver ton accès.
+      </p>
+    </div>
+    <div class="cta"> <a href="{{reconnectUrl}}">💧 Je me reconnecte maintenant</a> </div>
+    <div class="content">
+      <p>Si ton absence est involontaire, sache que nous t’accueillerons toujours avec bienveillance.</p>
+      <p>Mais si ton cœur est encore avec nous, <strong>ne laisse pas cette goutte se perdre.</strong></p>
+    </div>
+  </div>
+</body>
+
+</html>

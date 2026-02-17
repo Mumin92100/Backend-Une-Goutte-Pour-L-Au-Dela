@@ -1,0 +1,11 @@
+# Fichiers et dossiers à ignorer dans le dossier API
+node_modules/
+.env
+config.json
+*.log
+package-lock.json
+.DS_Store
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.swp

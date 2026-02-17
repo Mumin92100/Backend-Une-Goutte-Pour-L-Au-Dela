@@ -1,0 +1,11 @@
+{
+  "adminToken": "supersecretadmintoken",
+  "clientId": "wki7rpf8w4hls05kpbfdw7casnddu6",
+  "clientSecret": "rx2bu0qxreaut0qjajt4etsrtwwdq5",
+  "botLogin": "muminskai",
+  "chatChannelLogin": "muminskai",
+  "moderators": [
+    "muminskai",
+    "muminbotouslm"
+  ]
+}
