@@ -113,7 +113,7 @@ export async function createAdmin({ name, password }) {
     await connectMongo()
     const passwordHash = await Auth.hashPassword(password)
 
-    await adminCollection.insertOne({ _id: 'main', pseudonyme: name, password: passwordHash })
+    await adminCollection.insertOne({ pseudonyme: name, password: passwordHash })
     console.log('Admin créé dans MongoDB.')
 
     return { name: name } // Retourne les infos de l'admin créé (sans le mot de passe)
@@ -279,7 +279,7 @@ export async function updatePlayer({ id, updateType, toUpdate }) {
 export async function addDoneGoal({ playerId, name, doneGoal }) {
   await connectMongo()
   const now = new Date()
-  await goalsCollection.insertOne({ _id: 'main', playerId: playerId, name: name, doneGoal: doneGoal, doneDate: now.getTime() })
+  await goalsCollection.insertOne({ playerId: playerId, name: name, doneGoal: doneGoal, doneDate: now.getTime() })
 
   console.log('Goal ajouté dans MongoDB.')
 }
@@ -327,4 +327,5 @@ export async function getTwitchToken() {
   return doc ? doc.token : null
 
 }
+
 
