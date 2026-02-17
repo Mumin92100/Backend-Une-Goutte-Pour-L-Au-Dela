@@ -28,8 +28,7 @@ app.use(express.json())
 // CORS configuré pour autoriser https://kalskai-kill-overlay.vercel.app
 app.use(cors({
   origin: [
-    "https://kalskai-kill-overlay.vercel.app",
-    "https://game-in-stream.vercel.app"  // Ajoutez votre deuxième adresse ici
+   "https://une-goutte-pour-l-au-dela.vercel.app"
   ],
   methods: ["GET", "POST", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
