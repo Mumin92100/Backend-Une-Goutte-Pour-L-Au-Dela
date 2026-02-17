@@ -39,8 +39,17 @@ app.use(cors({
 
 // Middleware pour parser les données du formulaire
 app.use(express.urlencoded({ extended: true }));
+
 // Middleware pour gérer les sessions 
-app.use(session({ secret: ADMIN_TOKEN, resave: true, saveUninitialized: true }))
+app.use(session({
+  secret: ADMIN_TOKEN,
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    sameSite: 'none',
+    secure: true
+  }
+}))
 app.use(passport.initialize())
 // Passport utilise la session (express-session) pour stocker l’identifiant de l’utilisateur (défini par serializeUser) entre les requêtes HTTP.
 app.use(passport.session())
