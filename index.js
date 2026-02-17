@@ -53,7 +53,7 @@ app.use(session({
     httpOnly: true,
     sameSite: 'none',
     secure: true, // Mettre à true en production avec HTTPS
-    domain: "backend-une-goutte-pour-l-au-dela.onrender.com", // Doit correspondre au domaine de votre application
+    domain: "une-goutte-pour-l-au-dela.vercel.app", // Doit correspondre au domaine de votre application
     maxAge: 24 * 60 * 60 * 1000 // 1 jour
   }
 }))
