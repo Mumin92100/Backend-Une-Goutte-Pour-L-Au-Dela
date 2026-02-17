@@ -51,8 +51,8 @@ app.use(session({
   }),
   cookie: {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: false, // Mettre à true en production avec HTTPS
+    sameSite: 'none',
+    secure: true, // Mettre à true en production avec HTTPS
     domain: "axz.onrender.com", // Doit correspondre au domaine de votre application
     maxAge: 24 * 60 * 60 * 1000 // 1 jour
   }
