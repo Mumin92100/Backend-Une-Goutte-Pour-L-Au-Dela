@@ -194,14 +194,16 @@ app.get('/resendEmail', (req, res) => {
   getPlayerById(id)
     .then(player => {
       if (player) {
-        const emailSent = sendRegistrationEmail(player.email, player.name) // Renvoyer l'email de bienvenue après la création du joueur
-        if (emailSent) {
-          updatePlayer({ id: player._id, updateType: 'emailSent', toUpdate: true }) // Met à jour le champ emailSent du joueur dans la base de données
-        }
-        res.status(200).json({ success: true, message: 'Email renvoyé avec succès' })
+        return { player, emailSent: sendRegistrationEmail(player.email, player.name) }
       } else {
         res.status(404).json({ message: 'Joueur non trouvé' })
       }
+    })
+    .then(({ player, emailSent }) => {
+      if (emailSent) {
+        updatePlayer({ id: player._id, updateType: 'emailSent', toUpdate: true }) // Met à jour le champ emailSent du joueur dans la base de données
+      }
+      res.status(200).json({ success: true, message: 'Email renvoyé avec succès' })
     })
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
