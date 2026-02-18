@@ -53,7 +53,6 @@ function verifyJWT(req, res, next) {
       return res.status(401).json({ message: 'Token invalide ou expiré' })
     }
     
-    console.log('JWT vérifié pour l\'utilisateur :', decoded.userId)
     req.userId = decoded.userId
     next()
   })
@@ -311,11 +310,9 @@ app.delete('/eraseAllPlayers', (req, res) => {
 // 🔑 LOGIN JOUEUR avec JWT
 app.post('/login', (req, res, next) => {
   console.log('=== /login appelé ===')
-  console.log('Body:', req.body)
   
   // Utilise la stratégie "local" pour récupérer l'utilisateur 
   passport.authenticate('local', (err, user, info) => {
-    console.log('Callback de Passport - user:', user ? user._id : null)
     
     if (err) {
       console.error('Erreur d\'authentification :', err)
