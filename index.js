@@ -43,8 +43,11 @@ app.use(express.urlencoded({ extended: true }));
 // Middleware pour gérer les sessions 
 app.use(session({
   secret: ADMIN_TOKEN,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project',
+  }),
   cookie: {
     httpOnly: true,
     sameSite: 'none',
