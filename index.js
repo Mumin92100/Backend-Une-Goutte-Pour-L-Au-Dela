@@ -25,7 +25,7 @@ const app = express()
 // 1. CORS en PREMIER
 app.use(cors({
   origin: [
-    "https://une-goutte-pour-l-au-dela.onrender.com",
+    "https://une-goutte-pour-l-au-dela.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],  // ✅ Enlevé "Credentials"
