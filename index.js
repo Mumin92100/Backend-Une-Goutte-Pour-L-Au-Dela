@@ -2,9 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import http from 'http'
 import fs from 'fs'
-import session from 'express-session'
+import jwt from 'jsonwebtoken'  // 🔑 Nouveau
 import passport from 'passport'
-// Une des stratégies d'authentification fourni par Passport
 import { Strategy as LocalStrategy } from 'passport-local'
 import {
   connectMongo,
@@ -13,16 +12,13 @@ import {
 } from './database.js'
 import { Auth } from './utils/AuthClass.js'
 import { sendRegistrationEmail, sendWarningEmail } from './mailer.js'
-import MongoStore from 'connect-mongo'
-//import { saveTwitchToken } from './utils/twitchTokenManager.js'
-//import { startBot } from './twitchBot.js'
-
 
 // Charger la configuration depuis config.json
 const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'))
 const CLIENT_ID = config.clientId
 const CLIENT_SECRET = config.clientSecret
 const ADMIN_TOKEN = config.adminToken
+const JWT_SECRET = ADMIN_TOKEN  // 🔑 Utilise ADMIN_TOKEN comme secret JWT
 
 const app = express()
 
@@ -32,38 +28,61 @@ app.use(cors({
     "https://une-goutte-pour-l-au-dela.onrender.com",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
-  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],  // ✅ Enlevé "Credentials"
   preflightContinue: false,
   optionsSuccessStatus: 204
 }))
 
-// 2. Parsers ensuite
+// 2. Parsers
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-// 3. Session
-app.use(session({
-  secret: ADMIN_TOKEN,
-  resave: true,
-  saveUninitialized: true,
-  store: MongoStore.create({
-    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project',
-  }),
-  cookie: {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: true,
-    maxAge: 24 * 60 * 60 * 1000
+// 🔑 NOUVEAU : Middleware JWT pour vérifier les tokens
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.split(' ')[1]  // "Bearer TOKEN"
+  
+  if (!token) {
+    console.log('Pas de token JWT fourni dans la requête')
+    return res.status(401).json({ message: 'Non authentifié - token manquant' })
   }
-}))
+  
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.error('Erreur de vérification JWT :', err.message)
+      return res.status(401).json({ message: 'Token invalide ou expiré' })
+    }
+    
+    console.log('JWT vérifié pour l\'utilisateur :', decoded.userId)
+    req.userId = decoded.userId
+    next()
+  })
+}
 
-// 4. Passport
-app.use(passport.initialize())
-app.use(passport.session())
+// 🔑 NOUVEAU : Middleware JWT pour l'admin
+function verifyAdminJWT(req, res, next) {
+  const authHeader = req.headers.authorization
+  const token = authHeader && authHeader.split(' ')[1]
+  
+  if (!token) {
+    return res.status(401).json({ message: 'Non authentifié - token admin manquant' })
+  }
+  
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: 'Token admin invalide ou expiré' })
+    }
+    
+    if (decoded.isAdmin !== true) {
+      return res.status(403).json({ message: 'Accès admin refusé' })
+    }
+    
+    req.userId = decoded.userId
+    next()
+  })
+}
 
-// --- Passport.js : Auth locale, session, routes sécurisées ---
-// Stratégie locale (email/mot de passe)
+// --- Stratégies Passport (gardées pour valider les credentials) ---
 passport.use(new LocalStrategy(
   { usernameField: 'email' },
   async (email, password, done) => {
@@ -71,11 +90,8 @@ passport.use(new LocalStrategy(
       const players = await getPlayers()
       const player = players ? players.find(user => user.email === email) : null
 
-      // Envoie le message à la route de connexion
       if (!player) return done(null, false, { message: 'Utilisateur non trouvé' })
-      // Compare le mot de passe fourni avec le hash stocké dans la base de données
       const isMatch = await Auth.comparePassword(password, player.password)
-      // Envoie le message à la route de connexion
       if (!isMatch) return done(null, false, { message: 'Mot de passe incorrect' })
 
       return done(null, player)
@@ -85,15 +101,12 @@ passport.use(new LocalStrategy(
   }
 ))
 
-// Stratégie locale pour l'admin
 passport.use('local-admin', new LocalStrategy(
   { usernameField: 'pseudonyme', passwordField: 'password', passReqToCallback: true },
   async (req, pseudonyme, password, done) => {
     try {
-      // Vérifie le token d'authentification dans le corps de la requête
       const authToken = req.body?.authToken
       if (authToken !== ADMIN_TOKEN) {
-        // Envoie le message à la route de connexion admin
         return done(null, false, { message: 'Token admin invalide' })
       }
 
@@ -110,53 +123,27 @@ passport.use('local-admin', new LocalStrategy(
   }
 ))
 
-passport.serializeUser((user, done) => {
-  done(null, user._id)
-})
+app.use(passport.initialize())
 
-passport.deserializeUser(async (id, done) => {
-  try {
-    console.log('Deserializing user with id:', id)  // 🔍 Log l'ID
-    const user = await getPlayerById(id)
-    console.log('User found:', user ? 'Yes' : 'No')  // 🔍 Log si trouvé
-    done(null, user)
-  } catch (err) {
-    console.error('Deserialization error:', err)  // 🔍 Log l'erreur
-    done(err)
-  }
-})
-
-// Middleware pour protéger les routes
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) return next()
-  res.status(401).json({ message: 'Non authentifié' })
-}
-
-// 5. Ensuite vos routes...
 // Crée le serveur HTTP
 const server = http.createServer(app)
 
 // --- Routes API ---
 
 app.post('/createPlayer', (req, res) => {
-  // Destructure les données du joueur depuis les paramètres de la requête
   const { name, email, password, goal, secondGoal = "", thirdGoal = "" } = req.body
 
-  // Vérifie que les données nécessaires sont présentes
   if (!name || !email || !password || !goal) {
     return res.status(400).json({ message: 'Données de joueur manquantes' })
   }
 
   createPlayer({ name, email, password, goal, secondGoal, thirdGoal })
-    .then((id) => getPlayerById(id)) // Récupère le joueur créé pour la vérification
+    .then((id) => getPlayerById(id))
     .then(player => {
-      // Vérifie que le joueur a bien été créé et envoyé dans la réponse
       if (player && player._id) {
-
         console.log('Le joueur créé est bien en base de données:', player)
-        res.status(201).json({ success: true, message: 'Joueur créé avec succès' })
 
-        // Envoyer l'email de bienvenue après la création du joueur
+        res.status(201).json({ success: true, message: 'Joueur créé avec succès' })
         sendRegistrationEmail(player.email, player.name, player._id)
       } else {
         res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur' })
@@ -165,11 +152,9 @@ app.post('/createPlayer', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
 })
 
-
 app.post('/createAdmin', (req, res) => {
   const { name, password, authToken } = req.body
 
-  // Vérifie que les données nécessaires sont présentes et que le token d'authentification est valide
   if (!name || !password || !authToken) {
     return res.status(400).json({ message: 'Données de l\'admin manquantes' })
   }
@@ -178,7 +163,7 @@ app.post('/createAdmin', (req, res) => {
   }
 
   createAdmin({ name, password })
-    .then(name => getAdmin(name, password)) // Récupère l'admin créé pour l'envoyer dans la réponse
+    .then(name => getAdmin(name, password))
     .then(admin => {
       if (admin) {
         res.status(201).json({ success: true, message: 'Admin créé avec succès' })
@@ -239,7 +224,6 @@ app.post('/sendWarning', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-
 app.get('/getPlayers', (req, res) => {
   getPlayers()
     .then(players => res.status(200).json({ players: players }))
@@ -262,17 +246,18 @@ app.get('/getPlayerById', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération du joueur', error }))
 })
 
-app.post('/updatePlayer', (req, res) => {
-
-  // Déstructure les données de mise à jour pour l'update du nom du joueur
+app.post('/updatePlayer', verifyJWT, (req, res) => {
   const { id, updateType, toUpdate } = req.body
 
-  // Vérifie que les données nécessaires sont présentes dans la requête
+  // 🔑 Vérifier que l'utilisateur ne modifie que ses propres données
+  if (req.userId !== id) {
+    return res.status(403).json({ message: 'Accès refusé - vous ne pouvez modifier que vos propres données' })
+  }
+
   if (id === undefined || updateType === undefined || toUpdate === undefined) {
     return res.status(400).json({ message: 'Données de mise à jour manquantes' })
   }
 
-  // Appelle la fonction d'update du joueur dans la base de données
   updatePlayer({ id, updateType, toUpdate })
     .then(() => {
       return res.status(200).json({ success: true, message: 'Joueur mis à jour' })
@@ -280,7 +265,6 @@ app.post('/updatePlayer', (req, res) => {
     .catch(error => {
       return res.status(500).json({ success: false, message: 'Erreur lors de la mise à jour du joueur', error })
     })
-
 })
 
 app.get('/getGoals', (req, res) => {
@@ -292,7 +276,6 @@ app.get('/getGoals', (req, res) => {
 app.get('/getGoalsByPlayerId', (req, res) => {
   const playerId = req.query.playerId
 
-  // Vérifie que l'ID du joueur est un nombre valide
   if (!playerId) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
@@ -314,7 +297,6 @@ app.delete('/erasePlayerById', (req, res) => {
 
 app.delete('/eraseAllPlayers', (req, res) => {
   const authToken = req.query.authToken
-  // Vérifie que le token d'authentification est présent et valide
   if (authToken !== ADMIN_TOKEN) {
     return res.status(403).json({ message: 'Token d\'authentification invalide pour l\'effacement des joueurs.' })
   }
@@ -324,86 +306,93 @@ app.delete('/eraseAllPlayers', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement des joueurs', error }))
 })
 
+// --- Routes d'authentification JWT ---
 
-// --- Routes de login Passport ---
+// 🔑 LOGIN JOUEUR avec JWT
 app.post('/login', (req, res, next) => {
-  console.log('=== /login called ===')
+  console.log('=== /login appelé ===')
   console.log('Body:', req.body)
   
+  // Utilise la stratégie "local" pour récupérer l'utilisateur 
   passport.authenticate('local', (err, user, info) => {
-    console.log('Passport callback - user:', user ? user._id : null)
+    console.log('Callback de Passport - user:', user ? user._id : null)
     
     if (err) {
+      console.error('Erreur d\'authentification :', err)
       return res.status(500).json({ message: 'Erreur lors de la connexion', error: err })
     }
     
     if (!user) {
+      console.log('Aucun utilisateur trouvé')
       return res.status(401).json({ incorrect: true, message: info?.message || 'Identifiants invalides' })
     }
 
-    // 🔑 IMPORTANT : régénérer la session d'abord
-    req.session.regenerate((regenerateErr) => {
-      if (regenerateErr) {
-        console.error('Session regenerate error:', regenerateErr)
-        return res.status(500).json({ message: 'Erreur', error: regenerateErr })
-      }
-      
-      req.logIn(user, loginErr => {
-        if (loginErr) {
-          console.error('Login error:', loginErr)
-          return res.status(500).json({ message: 'Erreur', error: loginErr })
-        }
-        
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('Session save error:', saveErr)
-            return res.status(500).json({ message: 'Erreur', error: saveErr })
-          }
-          
-          console.log('✅ Set-Cookie:', res.getHeaders()['set-cookie'])  // 🔍
-          res.status(200).json({ message: 'Connexion réussie', user: req.user })
-        })
-      })
+    // 🔑 Créez un JWT au lieu d'une session
+    const token = jwt.sign(
+      { userId: user._id, isAdmin: false },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
+    
+    console.log('JWT créé pour l\'utilisateur :', user._id)
+    res.status(200).json({ 
+      message: 'Connexion réussie', 
+      user: user,
+      token: token  // 🔑 Envoyez le token
     })
   })(req, res, next)
 })
 
-
+// 🔑 LOGIN ADMIN avec JWT
 app.post('/adminLogin', (req, res, next) => {
+  console.log('=== /adminLogin appelé ===')
+  
   passport.authenticate('local-admin', (err, admin, info) => {
     if (err) {
+      console.error('Erreur d\'authentification admin :', err)
       return res.status(500).json({ message: 'Erreur lors de la connexion admin', error: err })
     }
+    
     if (!admin) {
       return res.status(401).json({ message: info?.message || 'Identifiants admin invalides' })
     }
-    req.logIn(admin, loginErr => {
-      if (loginErr) {
-        return res.status(500).json({ message: 'Erreur lors de la connexion admin', error: loginErr })
-      }
-      res.status(200).json({ message: 'Connexion admin réussie', admin: req.user })
+
+    // 🔑 Créez un JWT admin
+    const token = jwt.sign(
+      { userId: admin._id, isAdmin: true },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    )
+    
+    console.log('JWT admin créé pour l\'utilisateur :', admin._id)
+    res.status(200).json({ 
+      message: 'Connexion admin réussie', 
+      admin: admin,
+      token: token  // 🔑 Envoyez le token
     })
   })(req, res, next)
 })
 
-// Exemple de route privée protégée
-app.get('/prive', ensureAuthenticated, (req, res) => {
-  res.json({ message: 'Bienvenue !', user: req.user })
-})
-
-// Route de déconnexion
-app.get('/logout', (req, res) => {
-  // Utilise la méthode de déconnexion de Passport pour terminer la session
-  req.logout(err => {
-    if (err) return res.status(500).json({ message: 'Erreur', error: err })
-    // Détruit la session et efface le cookie de session
-    req.session.destroy(() => {
-      res.clearCookie('connect.sid')
-      res.status(200).json({ success: true, message: 'Déconnexion réussie' })
+// 🔑 Route privée protégée par JWT
+app.get('/prive', verifyJWT, (req, res) => {
+  getPlayerById(req.userId)
+    .then(user => {
+      if (user) {
+        res.json({ message: 'Bienvenue !', user: user })
+      } else {
+        res.status(404).json({ message: 'Utilisateur non trouvé' })
+      }
     })
-  })
+    .catch(error => res.status(500).json({ message: 'Erreur', error }))
 })
 
+// 🔑 Route admin protégée par JWT
+app.get('/adminPrive', verifyAdminJWT, (req, res) => {
+  res.json({ message: 'Bienvenue admin !', userId: req.userId })
+})
+
+
+// --- Routes Twitch OAuth ---
 app.get('/clientId', (req, res) => {
   if (!CLIENT_ID) {
     return res.status(500).json({ message: 'Le client ID est introuvable dans la configuration' })
@@ -412,7 +401,6 @@ app.get('/clientId', (req, res) => {
 })
 
 app.get('/twitchCode', (req, res) => {
-
   const code = req.query.code
   if (!code) {
     console.error('Aucun code reçu de Twitch')
@@ -424,16 +412,15 @@ app.get('/twitchCode', (req, res) => {
   if (!CLIENT_ID || !CLIENT_SECRET) {
     return res.status(500).json({ message: 'Le client ID ou le client secret est introuvable dans la configuration' })
   }
-  // Construis les paramètres pour l'url d'échange de code
+  
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     client_secret: CLIENT_SECRET,
     code: code,
     grant_type: 'authorization_code',
-    redirect_uri: 'http://localhost:3000' // Doit correspondre à l'URI enregistrée dans l'application Twitch
+    redirect_uri: 'http://localhost:3000'
   })
 
-  // Fetch l'url avec les paramètres pour obtenir le token d'accès
   fetch('https://id.twitch.tv/oauth2/token', {
     method: 'POST',
     body: params
@@ -442,38 +429,23 @@ app.get('/twitchCode', (req, res) => {
     .then(data => {
       console.log('Token d\'accès reçu de Twitch.')
 
-      // Token valide, on sauvegarde le token d'accès dans la base de données
       if (data.access_token) {
-        // Ajoute la date d'obtention du token
         data.obtentionDate = new Date().getTime()
-
-        saveTwitchToken(data) // Sauvegarde dans la base de donnée
-          .then(() => {
-            // Démarrer le bot Twitch après avoir sauvegardé le token
-            startBot()
-          })
+        // saveTwitchToken(data)
+        // startBot()
       }
     })
     .catch(error => {
       console.error('Erreur lors de l\'échange du code:', error)
       res.status(500).json({ message: 'Erreur lors de l\'échange du code', error })
     })
-
 })
 
-
-// Export a function to start the server (utilisée par dev.js)
 export async function startServer(port) {
   try {
     server.listen(port, () => {
       console.log(`Server is running on port ${port}`)
-      connectMongo() // Connecte à MongoDB au démarrage du serveur
-
-      // Démarrer le bot APRÈS que le serveur soit prêt
-      /*
-      console.log('Starting Twitch bot...')
-      startBot()
-      */
+      connectMongo()
     })
   } catch (err) {
     console.error('Failed to start server:', err)
