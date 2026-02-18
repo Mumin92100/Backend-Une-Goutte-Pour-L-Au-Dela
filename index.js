@@ -116,9 +116,12 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await getPlayerById(id)  // ✅ Récupère un seul joueur
+    console.log('Deserializing user with id:', id)  // 🔍 Log l'ID
+    const user = await getPlayerById(id)
+    console.log('User found:', user ? 'Yes' : 'No')  // 🔍 Log si trouvé
     done(null, user)
   } catch (err) {
+    console.error('Deserialization error:', err)  // 🔍 Log l'erreur
     done(err)
   }
 })
