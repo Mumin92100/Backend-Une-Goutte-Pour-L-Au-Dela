@@ -25,7 +25,8 @@ const CLIENT_SECRET = config.clientSecret
 const ADMIN_TOKEN = config.adminToken
 
 const app = express()
-app.use(express.json())
+
+// 1. CORS en PREMIER
 app.use(cors({
   origin: [
     "https://une-goutte-pour-l-au-dela.onrender.com",
@@ -37,10 +38,11 @@ app.use(cors({
   optionsSuccessStatus: 204
 }))
 
-// Middleware pour parser les données du formulaire
-app.use(express.urlencoded({ extended: true }));
+// 2. Parsers ensuite
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Middleware pour gérer les sessions 
+// 3. Session
 app.use(session({
   secret: ADMIN_TOKEN,
   resave: true,
@@ -56,10 +58,11 @@ app.use(session({
   }
 }))
 
+// 4. Passport
 app.use(passport.initialize())
-// Passport utilise la session (express-session) pour stocker l’identifiant de l’utilisateur (défini par serializeUser) entre les requêtes HTTP.
 app.use(passport.session())
 
+// 5. Ensuite vos routes...
 
 // --- Passport.js : Auth locale, session, routes sécurisées ---
 // Stratégie locale (email/mot de passe)
