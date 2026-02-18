@@ -28,7 +28,7 @@ const app = express()
 app.use(express.json())
 app.use(cors({
   origin: [
-    "https://une-goutte-pour-l-au-dela.onrender.com",
+    "https://une-goutte-pour-l-au-dela.onrender.com/",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "Credentials"],
