@@ -46,15 +46,17 @@ app.use(session({
   resave: true,
   saveUninitialized: true,
   store: MongoStore.create({
-    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project'
+    mongoUrl: 'mongodb+srv://califeryan_db_user:DZqeO797brr9G5OF@cluster0.j5ezvv2.mongodb.net/ramadan-project',
+    touchAfter: 24 * 3600  // Lazy session update (en secondes)
   }),
   cookie: {
     httpOnly: true,
     sameSite: 'none',
-    secure: true, // Mettre à true en production avec HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 1 jour
+    secure: true,
+    maxAge: 24 * 60 * 60 * 1000
   }
 }))
+
 app.use(passport.initialize())
 // Passport utilise la session (express-session) pour stocker l’identifiant de l’utilisateur (défini par serializeUser) entre les requêtes HTTP.
 app.use(passport.session())
