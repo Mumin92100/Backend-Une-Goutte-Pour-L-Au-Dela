@@ -323,26 +323,45 @@ app.delete('/eraseAllPlayers', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement des joueurs', error }))
 })
 
+
 // --- Routes de login Passport ---
 app.post('/login', (req, res, next) => {
-  passport.authenticate('local', (err, user, info) => { // Callback personnalisé pour gérer la réponse de l'authentification
+  console.log('=== /login called ===')  // 🔍
+  console.log('Body:', req.body)  // 🔍
+  
+  passport.authenticate('local', (err, user, info) => {
+    console.log('Passport callback - err:', err)  // 🔍
+    console.log('Passport callback - user:', user)  // 🔍
+    console.log('Passport callback - info:', info)  // 🔍
+    
     if (err) {
+      console.error('Auth error:', err)
       return res.status(500).json({ message: 'Erreur lors de la connexion', error: err })
     }
-    // Si l'utilisateur n'est pas trouvé ou que le mot de passe est incorrect, on peut envoyer un message d'erreur spécifique
+    
     if (!user) {
+      console.log('No user found')
       return res.status(401).json({ incorrect: true, message: info?.message || 'Identifiants invalides' })
     }
 
-    // Si l'authentification est réussie, on utilise req.logIn pour établir la session
+    console.log('User found:', user._id)  // 🔍
+    
     req.logIn(user, loginErr => {
+      console.log('After logIn - err:', loginErr)  // 🔍
+      console.log('After logIn - sessionID:', req.sessionID)  // 🔍
+      console.log('After logIn - req.user:', req.user)  // 🔍
+      
       if (loginErr) {
+        console.error('Login error:', loginErr)
         return res.status(500).json({ message: 'Erreur lors de la connexion', error: loginErr })
       }
+      
+      console.log('Login successful - sending response')  // 🔍
       res.status(200).json({ message: 'Connexion réussie', user: req.user })
     })
-  })(req, res, next) // Appelle la fonction de middleware de Passport pour l'authentification
+  })(req, res, next)
 })
+
 
 app.post('/adminLogin', (req, res, next) => {
   passport.authenticate('local-admin', (err, admin, info) => {
