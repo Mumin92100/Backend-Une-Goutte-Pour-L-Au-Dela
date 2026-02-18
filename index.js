@@ -62,8 +62,6 @@ app.use(session({
 app.use(passport.initialize())
 app.use(passport.session())
 
-// 5. Ensuite vos routes...
-
 // --- Passport.js : Auth locale, session, routes sécurisées ---
 // Stratégie locale (email/mot de passe)
 passport.use(new LocalStrategy(
@@ -134,7 +132,7 @@ function ensureAuthenticated(req, res, next) {
   res.status(401).json({ message: 'Non authentifié' })
 }
 
-
+// 5. Ensuite vos routes...
 // Crée le serveur HTTP
 const server = http.createServer(app)
 
@@ -330,48 +328,45 @@ app.delete('/eraseAllPlayers', (req, res) => {
 // --- Routes de login Passport ---
 app.post('/login', (req, res, next) => {
   console.log('=== /login called ===')
-  console.log('Body:', req.body)
   
   passport.authenticate('local', (err, user, info) => {
-    console.log('Passport callback - err:', err)
-    console.log('Passport callback - user:', user)
-    
     if (err) {
-      console.error('Auth error:', err)
-      return res.status(500).json({ message: 'Erreur lors de la connexion', error: err })
+      return res.status(500).json({ message: 'Erreur', error: err })
     }
     
     if (!user) {
-      console.log('No user found')
-      return res.status(401).json({ incorrect: true, message: info?.message || 'Identifiants invalides' })
+      return res.status(401).json({ incorrect: true, message: info?.message })
     }
 
-    console.log('User found:', user._id)
-    
     req.logIn(user, loginErr => {
-      console.log('After logIn - err:', loginErr)
-      console.log('After logIn - sessionID:', req.sessionID)
-      
       if (loginErr) {
-        console.error('Login error:', loginErr)
-        return res.status(500).json({ message: 'Erreur lors de la connexion', error: loginErr })
+        return res.status(500).json({ message: 'Erreur', error: loginErr })
       }
       
-      // 🔑 IMPORTANT : sauvegarder la session PUIS envoyer la réponse
+      console.log('=== AVANT session.save ===')
+      console.log('req.sessionID:', req.sessionID)  // 🔍
+      console.log('req.session:', req.session)  // 🔍
+      console.log('res.getHeaders():', res.getHeaders())  // 🔍
+      
       req.session.save((saveErr) => {
         if (saveErr) {
           console.error('Session save error:', saveErr)
-          return res.status(500).json({ message: 'Erreur lors de la sauvegarde de session', error: saveErr })
+          return res.status(500).json({ message: 'Erreur', error: saveErr })
         }
         
-        console.log('Session saved successfully')
-        console.log('Login successful - sending response')
-        res.status(200).json({ message: 'Connexion réussie', user: req.user })
+        console.log('=== APRÈS session.save ===')
+        console.log('req.sessionID:', req.sessionID)  // 🔍
+        console.log('res.getHeaders():', res.getHeaders())  // 🔍
+        
+        const response = { message: 'Connexion réussie', user: req.user }
+        res.status(200).json(response)
+        
+        console.log('=== APRÈS res.json ===')
+        console.log('res.getHeaders():', res.getHeaders())  // 🔍
       })
     })
   })(req, res, next)
 })
-
 
 app.post('/adminLogin', (req, res, next) => {
   passport.authenticate('local-admin', (err, admin, info) => {
