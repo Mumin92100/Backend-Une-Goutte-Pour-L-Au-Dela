@@ -329,13 +329,12 @@ app.delete('/eraseAllPlayers', (req, res) => {
 
 // --- Routes de login Passport ---
 app.post('/login', (req, res, next) => {
-  console.log('=== /login called ===')  // 🔍
-  console.log('Body:', req.body)  // 🔍
+  console.log('=== /login called ===')
+  console.log('Body:', req.body)
   
   passport.authenticate('local', (err, user, info) => {
-    console.log('Passport callback - err:', err)  // 🔍
-    console.log('Passport callback - user:', user)  // 🔍
-    console.log('Passport callback - info:', info)  // 🔍
+    console.log('Passport callback - err:', err)
+    console.log('Passport callback - user:', user)
     
     if (err) {
       console.error('Auth error:', err)
@@ -347,20 +346,28 @@ app.post('/login', (req, res, next) => {
       return res.status(401).json({ incorrect: true, message: info?.message || 'Identifiants invalides' })
     }
 
-    console.log('User found:', user._id)  // 🔍
+    console.log('User found:', user._id)
     
     req.logIn(user, loginErr => {
-      console.log('After logIn - err:', loginErr)  // 🔍
-      console.log('After logIn - sessionID:', req.sessionID)  // 🔍
-      console.log('After logIn - req.user:', req.user)  // 🔍
+      console.log('After logIn - err:', loginErr)
+      console.log('After logIn - sessionID:', req.sessionID)
       
       if (loginErr) {
         console.error('Login error:', loginErr)
         return res.status(500).json({ message: 'Erreur lors de la connexion', error: loginErr })
       }
       
-      console.log('Login successful - sending response')  // 🔍
-      res.status(200).json({ message: 'Connexion réussie', user: req.user })
+      // 🔑 IMPORTANT : sauvegarder la session PUIS envoyer la réponse
+      req.session.save((saveErr) => {
+        if (saveErr) {
+          console.error('Session save error:', saveErr)
+          return res.status(500).json({ message: 'Erreur lors de la sauvegarde de session', error: saveErr })
+        }
+        
+        console.log('Session saved successfully')
+        console.log('Login successful - sending response')
+        res.status(200).json({ message: 'Connexion réussie', user: req.user })
+      })
     })
   })(req, res, next)
 })
