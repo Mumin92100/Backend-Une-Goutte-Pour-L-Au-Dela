@@ -19,7 +19,7 @@ export async function connectMongo() {
   // 
   if (!playersCollection || !goalsCollection || !countersCollection || !adminCollection) {
     await client.connect()
-    const db = client.db('local_ramadan-project') // Mets ici le nom de ta base de données
+    const db = client.db('ramadan-project') // Mets ici le nom de ta base de données
     if (!db) {
       throw new Error('Impossible de se connecter à la base de données MongoDB.')
     } else {
@@ -306,3 +306,4 @@ export async function getTwitchToken() {
   const doc = await tokensCollection.findOne({ _id: 'main' })
   return doc ? doc.token : null
 }
+
