@@ -19,7 +19,7 @@ export async function connectMongo() {
   // 
   if (!playersCollection || !goalsCollection || !countersCollection || !adminCollection) {
     await client.connect()
-    const db = client.db('ramadan-project') // Mets ici le nom de ta base de données
+    const db = client.db('local_ramadan-project') // Mets ici le nom de ta base de données
     if (!db) {
       throw new Error('Impossible de se connecter à la base de données MongoDB.')
     } else {
@@ -62,7 +62,8 @@ export async function connectMongo() {
     }
     if (!adminDoc) {
       const adminPasswordHash = await Auth.hashPassword('MuminAdmin92100!')
-      await adminCollection.insertOne({ _id: 'main', pseudonyme: 'mumin', password: adminPasswordHash })
+      await adminCollection.insertOne({ _id: 1000, pseudonyme: 'mumin', password: adminPasswordHash })
+      console.log('Document d\'admin initialisé dans MongoDB.')
     }
   }
 
@@ -104,22 +105,6 @@ export async function createPlayer({ name, email, password, goal, secondGoal, th
   return newId
 }
 
-export async function createAdmin({ name, password }) {
-
-  if (!name || !password) { // Vérifie que les données nécessaires sont présentes
-    throw new Error('Données de l\'admin manquantes pour la création de l\'admin.')
-  }
-  else {
-    await connectMongo()
-    const passwordHash = await Auth.hashPassword(password)
-
-    await adminCollection.insertOne({ pseudonyme: name, password: passwordHash })
-    console.log('Admin créé dans MongoDB.')
-
-    return { name: name } // Retourne les infos de l'admin créé (sans le mot de passe)
-  }
-}
-
 export async function getPlayers() {
   await connectMongo()
   // Récupère tous les joueurs de la collection
@@ -142,24 +127,15 @@ export async function getNameById(id) {
   return player ? player.name : null
 }
 
-export async function getAdmin(pseudonyme, password) {
-  await connectMongo()
-  // Récupère l'admin par pseudonyme
-  const admin = await adminCollection.findOne({ pseudonyme: pseudonyme })
-  if (!admin) {
-    return null
-  }
-  // Vérifie le mot de passe
-  const passwordMatch = await Auth.verifyPassword(password, admin.password)
-  if (!passwordMatch) {
-    return null
-  }
-  return admin ? admin : null
-}
-
 export async function getAdminByPseudonyme(pseudonyme) {
   await connectMongo()
   const admin = await adminCollection.findOne({ pseudonyme: pseudonyme })
+  return admin ? admin : null
+}
+
+export async function getAdminById(id) {
+  await connectMongo()
+  const admin = await adminCollection.findOne({ _id: id })
   return admin ? admin : null
 }
 
@@ -181,6 +157,10 @@ export async function savePlayer({ id, level, money }) {
 }
 
 export async function updatePlayer({ id, updateType, toUpdate }) {
+  if (id < 1000) {
+    console.error('Mise à jour interdite pour l\'ID "main".')
+    return
+  }
   await connectMongo()
 
   const now = new Date()
@@ -325,7 +305,4 @@ export async function getTwitchToken() {
   await connectMongo()
   const doc = await tokensCollection.findOne({ _id: 'main' })
   return doc ? doc.token : null
-
 }
-
-
