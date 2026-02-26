@@ -138,7 +138,7 @@ const server = http.createServer(app)
 
 // --- Routes API ---
 
-app.post('/api/createPlayer', (req, res) => {
+app.post('/createPlayer', (req, res) => {
   const { name, email, password, goal, secondGoal = "", thirdGoal = "" } = req.body
 
   if (!name || !email || !password || !goal) {
@@ -160,7 +160,7 @@ app.post('/api/createPlayer', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
 })
 
-app.get('/api/verifEmail', (req, res) => {
+app.get('/verifEmail', (req, res) => {
   const email = req.query.email
   if (!email) {
     return res.status(400).json({ message: 'Email manquant' })
@@ -176,7 +176,7 @@ app.get('/api/verifEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la vérification de l\'email', error }))
 })
 
-app.post('/api/resendEmail', (req, res) => {
+app.post('/resendEmail', (req, res) => {
   const { id } = req.body
 
   if (!id) {
@@ -193,7 +193,7 @@ app.post('/api/resendEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.post('/api/sendWarning', (req, res) => {
+app.post('/sendWarning', (req, res) => {
   const { id } = req.body
 
   if (!id) {
@@ -210,13 +210,13 @@ app.post('/api/sendWarning', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.get('/api/getPlayers', (req, res) => {
+app.get('/getPlayers', (req, res) => {
   getPlayers()
     .then(players => res.status(200).json({ players: players }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des joueurs', error }))
 })
 
-app.get('/api/getPlayerById', (req, res) => {
+app.get('/getPlayerById', (req, res) => {
   const id = req.query.id
   if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
@@ -232,7 +232,7 @@ app.get('/api/getPlayerById', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération du joueur', error }))
 })
 
-app.post('/api/updatePlayer', verifyJWT, (req, res) => {
+app.post('/updatePlayer', verifyJWT, (req, res) => {
   const { id, updateType, toUpdate } = req.body
 
   // 🔑 Vérifier que l'utilisateur ne modifie que ses propres données
@@ -253,13 +253,13 @@ app.post('/api/updatePlayer', verifyJWT, (req, res) => {
     })
 })
 
-app.get('/api/getGoals', (req, res) => {
+app.get('/getGoals', (req, res) => {
   getGoals()
     .then(goals => res.status(200).json({ goals: goals }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.get('/api/getGoalsByPlayerId', (req, res) => {
+app.get('/getGoalsByPlayerId', (req, res) => {
   const playerId = req.query.playerId
 
   if (!playerId) {
@@ -270,7 +270,7 @@ app.get('/api/getGoalsByPlayerId', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.delete('/api/erasePlayerById', (req, res) => {
+app.delete('/erasePlayerById', (req, res) => {
   const id = req.query.id
 
   if (!id) {
@@ -281,7 +281,7 @@ app.delete('/api/erasePlayerById', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement du joueur', error }))
 })
 
-app.delete('/api/eraseAllPlayers', (req, res) => {
+app.delete('/eraseAllPlayers', (req, res) => {
   const authToken = req.query.authToken
   if (authToken !== ADMIN_TOKEN) {
     return res.status(403).json({ message: 'Token d\'authentification invalide pour l\'effacement des joueurs.' })
@@ -295,7 +295,7 @@ app.delete('/api/eraseAllPlayers', (req, res) => {
 // --- Routes d'authentification JWT ---
 
 // 🔑 LOGIN JOUEUR avec JWT
-app.post('/api/login', (req, res, next) => {
+app.post('/login', (req, res, next) => {
   if (req.body.email === "admin@admin.com" && req.body.password === "adminpass") {
     // Si un admin essaie de se connecter via la route login, on lui autorise d'utiliser la route adminLogin
     res.status(201).json({ success : true, message: 'Veuillez utiliser la route /adminLogin pour vous connecter en tant qu\'admin.' })
@@ -336,7 +336,7 @@ app.post('/api/login', (req, res, next) => {
 })
 
 // 🔑 LOGIN ADMIN avec JWT
-app.post('/api/adminLogin', (req, res, next) => {
+app.post('/adminLogin', (req, res, next) => {
   console.log('=== /adminLogin appelé ===')
   
   passport.authenticate('local-admin', (err, admin, info) => {
@@ -366,7 +366,7 @@ app.post('/api/adminLogin', (req, res, next) => {
 })
 
 // 🔑 Route privée protégée par JWT
-app.get('/api/prive', verifyJWT, (req, res) => {
+app.get('/prive', verifyJWT, (req, res) => {
   getPlayerById(req.userId)
     .then(user => {
       if (user) {
@@ -379,7 +379,7 @@ app.get('/api/prive', verifyJWT, (req, res) => {
 })
 
 // 🔑 Route admin protégée par JWT
-app.get('/api/adminPrive', verifyAdminJWT, async (req, res) => {
+app.get('/adminPrive', verifyAdminJWT, async (req, res) => {
   getAdminById(req.userId)
     .then(admin => {
       if (admin) {
@@ -393,14 +393,14 @@ app.get('/api/adminPrive', verifyAdminJWT, async (req, res) => {
 
 
 // --- Routes Twitch OAuth ---
-app.get('/api/clientId', (req, res) => {
+app.get('/clientId', (req, res) => {
   if (!CLIENT_ID) {
     return res.status(500).json({ message: 'Le client ID est introuvable dans la configuration' })
   }
   res.status(200).json({ clientId: CLIENT_ID })
 })
 
-app.get('/api/twitchCode', (req, res) => {
+app.get('/twitchCode', (req, res) => {
   const code = req.query.code
   if (!code) {
     console.error('Aucun code reçu de Twitch')
