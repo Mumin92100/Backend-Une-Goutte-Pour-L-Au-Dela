@@ -43,7 +43,7 @@ function verifyJWT(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1]  // "Bearer TOKEN"
   
   if (!token) {
-    console.log('Pas de token JWT fourni dans la requête')
+    console.log('Pas de token JWT fourni dans la requête /prive')
     return res.status(401).json({ message: 'Non authentifié - token manquant' })
   }
   
@@ -53,6 +53,11 @@ function verifyJWT(req, res, next) {
       return res.status(401).json({ message: 'Token invalide ou expiré' })
     }
     
+    if (decoded.isAdmin) {
+      return res.status(403).json({ message: 'Accès refusé - token admin ne peut accéder à cette route' })
+    }
+    
+    console.log('JWT vérifié pour l\'utilisateur :', decoded.userId)
     req.userId = decoded.userId
     next()
   })
@@ -64,18 +69,21 @@ function verifyAdminJWT(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1]
   
   if (!token) {
+    console.log('Pas de token JWT fourni dans la requête /adminPrive')
     return res.status(401).json({ message: 'Non authentifié - token admin manquant' })
   }
   
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
+      console.error('Erreur de vérification JWT :', err.message)
       return res.status(401).json({ message: 'Token admin invalide ou expiré' })
     }
-    
+
     if (decoded.isAdmin !== true) {
       return res.status(403).json({ message: 'Accès admin refusé' })
     }
     
+    console.log('JWT vérifié pour l\'admin :', decoded.userId)
     req.userId = decoded.userId
     next()
   })
@@ -104,18 +112,19 @@ passport.use('local-admin', new LocalStrategy(
   { usernameField: 'pseudonyme', passwordField: 'password', passReqToCallback: true },
   async (req, pseudonyme, password, done) => {
     try {
+      
       const authToken = req.body?.authToken
       if (authToken !== ADMIN_TOKEN) {
         return done(null, false, { message: 'Token admin invalide' })
       }
 
-      const adminData = await getAdmin(pseudonyme)
-      if (!adminData) return done(null, false, { message: 'Admin non trouvé' })
+      const admin = await getAdminByPseudonyme(pseudonyme)
+      if (!admin) return done(null, false, { message: 'Admin non trouvé' })
 
-      const isMatch = await Auth.comparePassword(password, adminData.password)
+      const isMatch = await Auth.comparePassword(password, admin.password)
       if (!isMatch) return done(null, false, { message: 'Mot de passe incorrect' })
 
-      return done(null, adminData)
+      return done(null, admin)
     } catch (err) {
       return done(err)
     }
@@ -129,7 +138,7 @@ const server = http.createServer(app)
 
 // --- Routes API ---
 
-app.post('/createPlayer', (req, res) => {
+app.post('/api/createPlayer', (req, res) => {
   const { name, email, password, goal, secondGoal = "", thirdGoal = "" } = req.body
 
   if (!name || !email || !password || !goal) {
@@ -151,29 +160,7 @@ app.post('/createPlayer', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création du joueur', error }))
 })
 
-app.post('/createAdmin', (req, res) => {
-  const { name, password, authToken } = req.body
-
-  if (!name || !password || !authToken) {
-    return res.status(400).json({ message: 'Données de l\'admin manquantes' })
-  }
-  if (authToken !== ADMIN_TOKEN) {
-    return res.status(403).json({ message: 'Token d\'authentification invalide pour la création de l\'admin.' })
-  }
-
-  createAdmin({ name, password })
-    .then(name => getAdmin(name, password))
-    .then(admin => {
-      if (admin) {
-        res.status(201).json({ success: true, message: 'Admin créé avec succès' })
-      } else {
-        res.status(500).json({ success: false, message: 'Erreur lors de la création de l\'admin' })
-      }
-    })
-    .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de la création de l\'admin', error }))
-})
-
-app.get('/verifEmail', (req, res) => {
+app.get('/api/verifEmail', (req, res) => {
   const email = req.query.email
   if (!email) {
     return res.status(400).json({ message: 'Email manquant' })
@@ -189,7 +176,7 @@ app.get('/verifEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la vérification de l\'email', error }))
 })
 
-app.post('/resendEmail', (req, res) => {
+app.post('/api/resendEmail', (req, res) => {
   const { id } = req.body
 
   if (!id) {
@@ -206,7 +193,7 @@ app.post('/resendEmail', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.post('/sendWarning', (req, res) => {
+app.post('/api/sendWarning', (req, res) => {
   const { id } = req.body
 
   if (!id) {
@@ -223,13 +210,13 @@ app.post('/sendWarning', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors du renvoi de l\'email', error }))
 })
 
-app.get('/getPlayers', (req, res) => {
+app.get('/api/getPlayers', (req, res) => {
   getPlayers()
     .then(players => res.status(200).json({ players: players }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des joueurs', error }))
 })
 
-app.get('/getPlayerById', (req, res) => {
+app.get('/api/getPlayerById', (req, res) => {
   const id = req.query.id
   if (!id) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
@@ -245,7 +232,7 @@ app.get('/getPlayerById', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération du joueur', error }))
 })
 
-app.post('/updatePlayer', verifyJWT, (req, res) => {
+app.post('/api/updatePlayer', verifyJWT, (req, res) => {
   const { id, updateType, toUpdate } = req.body
 
   // 🔑 Vérifier que l'utilisateur ne modifie que ses propres données
@@ -266,13 +253,13 @@ app.post('/updatePlayer', verifyJWT, (req, res) => {
     })
 })
 
-app.get('/getGoals', (req, res) => {
+app.get('/api/getGoals', (req, res) => {
   getGoals()
     .then(goals => res.status(200).json({ goals: goals }))
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.get('/getGoalsByPlayerId', (req, res) => {
+app.get('/api/getGoalsByPlayerId', (req, res) => {
   const playerId = req.query.playerId
 
   if (!playerId) {
@@ -283,7 +270,7 @@ app.get('/getGoalsByPlayerId', (req, res) => {
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
-app.delete('/erasePlayerById', (req, res) => {
+app.delete('/api/erasePlayerById', (req, res) => {
   const id = req.query.id
 
   if (!id) {
@@ -294,7 +281,7 @@ app.delete('/erasePlayerById', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement du joueur', error }))
 })
 
-app.delete('/eraseAllPlayers', (req, res) => {
+app.delete('/api/eraseAllPlayers', (req, res) => {
   const authToken = req.query.authToken
   if (authToken !== ADMIN_TOKEN) {
     return res.status(403).json({ message: 'Token d\'authentification invalide pour l\'effacement des joueurs.' })
@@ -308,11 +295,19 @@ app.delete('/eraseAllPlayers', (req, res) => {
 // --- Routes d'authentification JWT ---
 
 // 🔑 LOGIN JOUEUR avec JWT
-app.post('/login', (req, res, next) => {
+app.post('/api/login', (req, res, next) => {
+  if (req.body.email === "admin@admin.com" && req.body.password === "adminpass") {
+    // Si un admin essaie de se connecter via la route login, on lui autorise d'utiliser la route adminLogin
+    res.status(201).json({ success : true, message: 'Veuillez utiliser la route /adminLogin pour vous connecter en tant qu\'admin.' })
+    return
+  }
+
   console.log('=== /login appelé ===')
+  console.log('Body:', req.body)
   
   // Utilise la stratégie "local" pour récupérer l'utilisateur 
   passport.authenticate('local', (err, user, info) => {
+    console.log('Callback de Passport - user:', user ? user._id : null)
     
     if (err) {
       console.error('Erreur d\'authentification :', err)
@@ -341,7 +336,7 @@ app.post('/login', (req, res, next) => {
 })
 
 // 🔑 LOGIN ADMIN avec JWT
-app.post('/adminLogin', (req, res, next) => {
+app.post('/api/adminLogin', (req, res, next) => {
   console.log('=== /adminLogin appelé ===')
   
   passport.authenticate('local-admin', (err, admin, info) => {
@@ -371,7 +366,7 @@ app.post('/adminLogin', (req, res, next) => {
 })
 
 // 🔑 Route privée protégée par JWT
-app.get('/prive', verifyJWT, (req, res) => {
+app.get('/api/prive', verifyJWT, (req, res) => {
   getPlayerById(req.userId)
     .then(user => {
       if (user) {
@@ -384,20 +379,28 @@ app.get('/prive', verifyJWT, (req, res) => {
 })
 
 // 🔑 Route admin protégée par JWT
-app.get('/adminPrive', verifyAdminJWT, (req, res) => {
-  res.json({ message: 'Bienvenue admin !', userId: req.userId })
+app.get('/api/adminPrive', verifyAdminJWT, async (req, res) => {
+  getAdminById(req.userId)
+    .then(admin => {
+      if (admin) {
+        res.json({ message: 'Bienvenue !', admin: admin })
+      } else {
+        res.status(404).json({ message: 'Admin non trouvé' })
+      }
+    })
+    .catch(error => res.status(500).json({ message: 'Erreur', error }))
 })
 
 
 // --- Routes Twitch OAuth ---
-app.get('/clientId', (req, res) => {
+app.get('/api/clientId', (req, res) => {
   if (!CLIENT_ID) {
     return res.status(500).json({ message: 'Le client ID est introuvable dans la configuration' })
   }
   res.status(200).json({ clientId: CLIENT_ID })
 })
 
-app.get('/twitchCode', (req, res) => {
+app.get('/api/twitchCode', (req, res) => {
   const code = req.query.code
   if (!code) {
     console.error('Aucun code reçu de Twitch')
@@ -437,6 +440,7 @@ app.get('/twitchCode', (req, res) => {
       res.status(500).json({ message: 'Erreur lors de l\'échange du code', error })
     })
 })
+
 
 export async function startServer(port) {
   try {
