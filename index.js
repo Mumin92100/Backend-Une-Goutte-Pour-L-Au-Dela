@@ -7,7 +7,7 @@ import passport from 'passport'
 import { Strategy as LocalStrategy } from 'passport-local'
 import {
   connectMongo,
-  createPlayer, createAdmin, getPlayers, getPlayerById, getAdmin, getAdminByPseudonyme, updatePlayer,
+  createPlayer, getPlayers, getPlayerById, getAdminByPseudonyme, getAdminById, updatePlayer,
   getGoals, getGoalsByPlayerId, erasePlayerById, eraseAllPlayers,
 } from './database.js'
 import { Auth } from './utils/AuthClass.js'
