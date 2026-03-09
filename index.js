@@ -7,8 +7,8 @@ import passport from 'passport'
 import { Strategy as LocalStrategy } from 'passport-local'
 import {
   connectMongo,
-  createPlayer, getPlayers, getPlayerById, getAdminByPseudonyme, getAdminById, updatePlayer,
-  getGoals, getGoalsByPlayerId, erasePlayerById, eraseAllPlayers,
+  createPlayer, getPlayers, getPlayerById, getAdminByPseudonyme, getAdminById, updatePlayer, savePlayer,
+  getGoals, getGoalsByPlayerId, erasePlayerById, eraseAllPlayers, getTheme,
 } from './database.js'
 import { Auth } from './utils/AuthClass.js'
 import { sendRegistrationEmail, sendWarningEmail } from './mailer.js'
@@ -139,13 +139,13 @@ const server = http.createServer(app)
 // --- Routes API ---
 
 app.post('/createPlayer', (req, res) => {
-  const { name, email, password, goal, secondGoal = "", thirdGoal = "" } = req.body
+  const { name, email, password, gender, goal, secondGoal = "", thirdGoal = "" } = req.body
 
-  if (!name || !email || !password || !goal) {
+  if (!name || !email || !password || !gender || !goal) {
     return res.status(400).json({ message: 'Données de joueur manquantes' })
   }
 
-  createPlayer({ name, email, password, goal, secondGoal, thirdGoal })
+  createPlayer({ name, email, password, gender, goal, secondGoal, thirdGoal })
     .then((id) => getPlayerById(id))
     .then(player => {
       if (player && player._id) {
@@ -253,6 +253,27 @@ app.post('/updatePlayer', verifyJWT, (req, res) => {
     })
 })
 
+app.post('/savePlayer', verifyJWT, (req, res) => {
+  const { id, level, money } = req.body
+
+  // 🔑 Vérifier que l'utilisateur ne modifie que ses propres données
+  if (req.userId !== id) {
+    return res.status(403).json({ message: 'Accès refusé - vous ne pouvez modifier que vos propres données' })
+  }
+
+  if (id === undefined || level === undefined || money === undefined) {
+    return res.status(400).json({ message: 'Données de sauvegarde manquantes' })
+  }
+
+  savePlayer({ id, level, money })
+    .then(() => {
+      return res.status(200).json({ success: true, message: 'Données de joueur sauvegardées' })
+    })
+    .catch(error => {
+      return res.status(500).json({ success: false, message: 'Erreur lors de la sauvegarde des données du joueur', error })
+    })
+})
+
 app.get('/getGoals', (req, res) => {
   getGoals()
     .then(goals => res.status(200).json({ goals: goals }))
@@ -260,13 +281,19 @@ app.get('/getGoals', (req, res) => {
 })
 
 app.get('/getGoalsByPlayerId', (req, res) => {
-  const playerId = req.query.playerId
+  console.log('=== /getGoalsByPlayerId appelé ===')
 
-  if (!playerId) {
+  const playerId = Number(req.query.playerId)
+   console.log('Query params:', playerId)
+
+  if (Number.isNaN(playerId)) {
     return res.status(400).json({ message: 'ID de joueur invalide' })
   }
+
   getGoalsByPlayerId(playerId)
-    .then(goals => res.status(200).json({ goals: goals }))
+    .then(goals => {
+      res.status(200).json({ goals: goals })
+    })
     .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération des goals', error }))
 })
 
@@ -292,17 +319,48 @@ app.delete('/eraseAllPlayers', (req, res) => {
     .catch(error => res.status(500).json({ success: false, message: 'Erreur lors de l\'effacement des joueurs', error }))
 })
 
+app.get('/getTheme', (req, res) => {
+  
+  getTheme()
+    .then(data => {
+      const { theme, primaryDark, secondaryDark, primaryLight, secondaryLight } = data
+      if (theme) {
+        res.status(200).json({ theme, primaryDark, secondaryDark, primaryLight, secondaryLight })
+      } else {
+        res.status(404).json({ message: 'Thème non trouvé' })
+      }
+    })
+    .catch(error => res.status(500).json({ message: 'Erreur lors de la récupération du thème', error }))
+})
+
+app.post('/updateTheme', verifyAdminJWT, (req, res) => {
+  const { updateType, toUpdate } = req.body
+
+  if (!updateType || !toUpdate) {
+    return res.status(400).json({ message: 'Données de mise à jour manquantes' })
+  }
+
+  updateTheme({ updateType, toUpdate })
+    .then(() => {
+      return res.status(200).json({ success: true, message: 'Thème mis à jour' })
+    })
+    .catch(error => {
+      return res.status(500).json({ success: false, message: 'Erreur lors de la mise à jour du thème', error })
+    })
+})
+
 // --- Routes d'authentification JWT ---
 
 // 🔑 LOGIN JOUEUR avec JWT
 app.post('/login', (req, res, next) => {
+  console.log('=== /login appelé ===')
+
   if (req.body.email === "admin@admin.com" && req.body.password === "adminpass") {
     // Si un admin essaie de se connecter via la route login, on lui autorise d'utiliser la route adminLogin
     res.status(201).json({ success : true, message: 'Veuillez utiliser la route /adminLogin pour vous connecter en tant qu\'admin.' })
     return
   }
 
-  console.log('=== /login appelé ===')
   console.log('Body:', req.body)
   
   // Utilise la stratégie "local" pour récupérer l'utilisateur 
@@ -367,6 +425,8 @@ app.post('/adminLogin', (req, res, next) => {
 
 // 🔑 Route privée protégée par JWT
 app.get('/prive', verifyJWT, (req, res) => {
+  console.log('=== /prive appelé ===')
+
   getPlayerById(req.userId)
     .then(user => {
       if (user) {
@@ -380,6 +440,8 @@ app.get('/prive', verifyJWT, (req, res) => {
 
 // 🔑 Route admin protégée par JWT
 app.get('/adminPrive', verifyAdminJWT, async (req, res) => {
+  console.log('=== /adminPrive appelé ===')
+
   getAdminById(req.userId)
     .then(admin => {
       if (admin) {
