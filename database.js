@@ -8,6 +8,7 @@ let playersCollection
 let countersCollection
 let goalsCollection
 let adminCollection
+let themeCollection
 // let tokensCollection
 
 // Charger la configuration depuis config.json
@@ -17,7 +18,7 @@ const config = JSON.parse(fs.readFileSync('./config.json', 'utf-8'))
 // Fonction pour se connecter à MongoDB et initialiser les collections
 export async function connectMongo() {
   // 
-  if (!playersCollection || !goalsCollection || !countersCollection || !adminCollection) {
+  if (!playersCollection || !goalsCollection || !countersCollection || !adminCollection || !themeCollection) {
     await client.connect()
     const db = client.db('ramadan-project') // Mets ici le nom de ta base de données
     if (!db) {
@@ -29,6 +30,7 @@ export async function connectMongo() {
     countersCollection = db.collection('counters')
     goalsCollection = db.collection('goals')
     adminCollection = db.collection('admin')
+    themeCollection = db.collection('theme')
     //tokensCollection = db.collection('tokens')
 
     // Initialisation du document si aucun document n'existe
@@ -36,6 +38,8 @@ export async function connectMongo() {
     const counterDoc = await countersCollection.findOne({ _id: 'counterId' })
     const goalDoc = await goalsCollection.findOne({})
     const adminDoc = await adminCollection.findOne({})
+    const themeDoc = await themeCollection.findOne({ _id: 'main' })
+
     // Si aucun document n'existe, on en crée un avec les champs nécessaires
     if (!playerDoc) {
       // Récupère la date
@@ -51,7 +55,7 @@ export async function connectMongo() {
       console.log('Premier ID généré pour le joueur test:', newId)
 
       // Insère le document de joueurs avec les champs nécessaires
-      await playersCollection.insertOne({ _id: newId, name: "", email: "", password: "", goal: "", dateValidate: now.getTime(), secondGoal: "", dateValidateSecond: now.getTime(), thirdGoal: "", dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
+      await playersCollection.insertOne({ _id: newId, name: "", email: "", password: "", gender: "", goal: "", dateValidate: now.getTime(), secondGoal: "", dateValidateSecond: now.getTime(), thirdGoal: "", dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
       console.log('Document de joueurs initialisé dans MongoDB.')
     }
     if (!goalDoc) {
@@ -61,9 +65,15 @@ export async function connectMongo() {
       console.log('Document de goals initialisé dans MongoDB.')
     }
     if (!adminDoc) {
-      const adminPasswordHash = await Auth.hashPassword('MuminAdmin92100!')
-      await adminCollection.insertOne({ _id: 1000, pseudonyme: 'mumin', password: adminPasswordHash })
+      const admin1PasswordHash = await Auth.hashPassword('MuminAdmin92100!')
+      const admin2PasswordHash = await Auth.hashPassword('AminPourLauDela123')
+      await adminCollection.insertOne({ _id: 1000, pseudonyme: 'Mumin', password: admin1PasswordHash })
+      await adminCollection.insertOne({ _id: 1001, pseudonyme: 'AminOuSlm', password: admin2PasswordHash })
       console.log('Document d\'admin initialisé dans MongoDB.')
+    }
+    if (!themeDoc) {
+      await themeCollection.insertOne({ _id: 'main', primaryDark: '#1d3552', secondaryDark: '#121212', primaryLight: '#cab193', secondaryLight: '#44272A' })
+      console.log('Document de thème initialisé dans MongoDB.')
     }
   }
 
@@ -90,7 +100,27 @@ async function getNextSequence() {
   return newID
 }
 
-export async function createPlayer({ name, email, password, goal, secondGoal, thirdGoal }) {
+export async function getTheme() {
+  await connectMongo()
+  const theme = await themeCollection.findOne({ _id: 'main' })
+  const primaryDark = theme ? theme.primaryDark : null
+  const secondaryDark = theme ? theme.secondaryDark : null
+  const primaryLight = theme ? theme.primaryLight : null
+  const secondaryLight = theme ? theme.secondaryLight : null
+
+  if (!theme) {
+    console.error('Thème non trouvé dans MongoDB.')
+    return null
+  }
+  if (!primaryDark || !secondaryDark || !primaryLight || !secondaryLight) {
+    console.error('Champs de thème manquants dans MongoDB.')
+    return null
+  }
+
+  return { theme: true, primaryDark, secondaryDark, primaryLight, secondaryLight }
+}
+
+export async function createPlayer({ name, email, password, gender, goal, secondGoal, thirdGoal }) {
   await connectMongo()
   const now = new Date()
   now.setDate(now.getDate() - 1) // Soustrait 1 jour à la date actuelle pour permettre au joueur de valider son objectif dès le premier jour
@@ -99,7 +129,7 @@ export async function createPlayer({ name, email, password, goal, secondGoal, th
   const newId = await getNextSequence()
   // Hash le mot de passe avant de le stocker
   const passwordHash = await Auth.hashPassword(password)
-  await playersCollection.insertOne({ _id: newId, name: name, email: email, password: passwordHash, goal: goal, dateValidate: now.getTime(), secondGoal: secondGoal, dateValidateSecond: now.getTime(), thirdGoal: thirdGoal, dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
+  await playersCollection.insertOne({ _id: newId, name: name, email: email, password: passwordHash, gender: gender, goal: goal, dateValidate: now.getTime(), secondGoal: secondGoal, dateValidateSecond: now.getTime(), thirdGoal: thirdGoal, dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
 
   console.log('Joueur créé dans MongoDB avec ID:', newId)
   return newId
@@ -157,7 +187,7 @@ export async function savePlayer({ id, level, money }) {
 }
 
 export async function updatePlayer({ id, updateType, toUpdate }) {
-  if (id < 1000) {
+  if (id >= 1000) {
     console.error('Mise à jour interdite pour l\'ID "main".')
     return
   }
@@ -256,6 +286,42 @@ export async function updatePlayer({ id, updateType, toUpdate }) {
   console.log('Joueur modifié dans MongoDB.')
 }
 
+export async function updateTheme({ updateType, toUpdate }) {
+  await connectMongo()
+  switch (updateType) {
+    case 'primaryDark':
+      await themeCollection.updateOne(
+        { _id: 'main' },
+        { $set: { primaryDark: toUpdate } },
+        { upsert: true }
+      )
+      break
+    case 'secondaryDark':
+      await themeCollection.updateOne(
+        { _id: 'main' },
+        { $set: { secondaryDark: toUpdate } },
+        { upsert: true }
+      )
+      break
+    case 'primaryLight':
+      await themeCollection.updateOne(
+        { _id: 'main' },
+        { $set: { primaryLight: toUpdate } },
+        { upsert: true }
+      )
+      break
+    case 'secondaryLight':
+      await themeCollection.updateOne(
+        { _id: 'main' },
+        { $set: { secondaryLight: toUpdate } },
+        { upsert: true }
+      )
+      break
+    default:
+      console.error('Type de mise à jour de thème inconnu:', updateType)
+  }
+}
+
 export async function addDoneGoal({ playerId, name, doneGoal }) {
   await connectMongo()
   const now = new Date()
@@ -306,4 +372,3 @@ export async function getTwitchToken() {
   const doc = await tokensCollection.findOne({ _id: 'main' })
   return doc ? doc.token : null
 }
-
