@@ -129,7 +129,7 @@ export async function createPlayer({ name, email, password, gender, goal, second
   const newId = await getNextSequence()
   // Hash le mot de passe avant de le stocker
   const passwordHash = await Auth.hashPassword(password)
-  await playersCollection.insertOne({ _id: newId, name: name, email: email, password: passwordHash, gender: gender, goal: goal, dateValidate: now.getTime(), secondGoal: secondGoal, dateValidateSecond: now.getTime(), thirdGoal: thirdGoal, dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
+  await playersCollection.insertOne({ _id: newId, name: name, email: email, password: passwordHash, gender: gender, goal: goal, dateValidate: now.getTime(), secondGoal: secondGoal, dateValidateSecond: now.getTime(), thirdGoal: thirdGoal, dateValidateThird: now.getTime(), level: 1, lastLevelUp: now.getTime(), money: 50, creationDate: now.getTime(), emailSent: false, warningSent: false })
 
   console.log('Joueur créé dans MongoDB avec ID:', newId)
   return newId
@@ -372,4 +372,5 @@ export async function getTwitchToken() {
   const doc = await tokensCollection.findOne({ _id: 'main' })
   return doc ? doc.token : null
 }
+
 
