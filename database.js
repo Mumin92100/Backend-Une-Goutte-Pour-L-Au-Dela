@@ -55,7 +55,7 @@ export async function connectMongo() {
       console.log('Premier ID généré pour le joueur test:', newId)
 
       // Insère le document de joueurs avec les champs nécessaires
-      await playersCollection.insertOne({ _id: newId, name: "", email: "", password: "", gender: "", goal: "", dateValidate: now.getTime(), secondGoal: "", dateValidateSecond: now.getTime(), thirdGoal: "", dateValidateThird: now.getTime(), level: 0, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
+      await playersCollection.insertOne({ _id: newId, name: "", email: "", password: "", gender: "", goal: "", dateValidate: now.getTime(), secondGoal: "", dateValidateSecond: now.getTime(), thirdGoal: "", dateValidateThird: now.getTime(), level: 1, lastLevelUp: now.getTime(), money: 0, creationDate: now.getTime(), emailSent: false, warningSent: false })
       console.log('Document de joueurs initialisé dans MongoDB.')
     }
     if (!goalDoc) {
@@ -372,3 +372,4 @@ export async function getTwitchToken() {
   const doc = await tokensCollection.findOne({ _id: 'main' })
   return doc ? doc.token : null
 }
+
